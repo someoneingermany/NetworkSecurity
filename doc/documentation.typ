@@ -98,7 +98,7 @@ Der Rahmenkopf ist 20 Byte lang und immer gleich aufgebaut:
     align: (left, center, left),
     stroke: 0.4pt + luma(170),
     table.header([*Feld*], [*Größe*], [*Bedeutung*]),
-    [magic], [4 B], [Kennung „NSEC“, um eigene Pakete von fremdem Ping zu trennen],
+    [magic], [4 B], [Kennung „DHBW“, um eigene Pakete von fremdem Ping zu trennen],
     [version], [1 B], [Protokollversion (aktuell 1)],
     [ptype], [1 B], [Pakettyp: INIT, DATA, FIN oder ACK],
     [seq], [4 B], [laufende Nummer des Frames],

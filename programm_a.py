@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """Programm A, Sender: liest Datei, codiert (Base64), sendet via ICMP, schreibt pcap."""
 
 import base64
@@ -29,7 +28,7 @@ def main():
     ack_status, ack_events = {}, {}
 
     def on_packet(pkt):
-        # Aufgabe A4: Packet Capture, beide Richtungen, ungefiltert, waehrend der Laufzeit
+        #Packet Capture, beide Richtungen, ungefiltert, waehrend der Laufzeit
         pcap.write(pkt)
         if not pkt.haslayer(ICMP) or not pkt.haslayer(Raw) or int(pkt[ICMP].type) != 0:
             return
@@ -46,7 +45,7 @@ def main():
             ev.set()
 
     def send_reliable(ptype, seq, total, data):
-        # Aufgabe A3: Senden ueber den Netzwerkstack via ICMP Echo-Request (Typ 8)
+        # Senden ueber den Netzwerkstack via ICMP Echo-Request (Typ 8)
         frame = C.build_frame(ptype, seq, total, data)
         pkt = IP(dst=DST) / ICMP(type=8, id=C.ICMP_ID, seq=seq & 0xFFFF) / Raw(load=frame)
         for attempt in range(1, MAX_RETRIES + 1):
@@ -56,6 +55,7 @@ def main():
                 ack_status[seq] = None
             send(pkt, iface=IFACE, verbose=0)
             log.info("-> ptype=%d seq=%d (Versuch %d/%d)", ptype, seq, attempt, MAX_RETRIES)
+            #Stop-and-Wait ARQ fuer error control
             if ev.wait(ACK_TIMEOUT) and ack_status.get(seq) == C.ACK_OK:
                 return True
         log.error("seq=%d nach %d Versuchen nicht bestaetigt, Abbruch", seq, MAX_RETRIES)
@@ -65,12 +65,12 @@ def main():
         log.error("Eingabedatei nicht gefunden: %s", FILE)
         return 2
 
-    # Aufgabe A1: Auslesen der Textdatei mit den zu extrahierenden Daten
+    # Auslesen der Textdatei mit den zu extrahierenden Daten
     with open(FILE, "rb") as f:
         raw = f.read()
     sha = hashlib.sha256(raw).digest()
 
-    # Aufgabe A2: Codierung des Textinhaltes (Base64, kein Klartext auf dem Netz)
+    # Codierung des Textinhaltes (Base64, kein Klartext auf dem Netz)
     encoded = base64.b64encode(raw)
     chunks = [encoded[i:i + C.CHUNK_DATA_LEN] for i in range(0, len(encoded), C.CHUNK_DATA_LEN)]
     total = len(chunks)

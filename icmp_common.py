@@ -1,14 +1,13 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""Gemeinsame Bausteine fuer Programm A und B: Rahmenformat, CRC32, Logging."""
+"""Rahmenformat, CRC32, Logging."""
 
 import binascii
 import logging
 import struct
 
-MAGIC = b"NSEC"
+MAGIC = b"DHBW"
 VERSION = 1
-ICMP_ID = 0x4213
+ICMP_ID = 0x3107
 
 PT_INIT, PT_DATA, PT_FIN, PT_ACK = 1, 2, 3, 4
 ACK_OK, ACK_NACK = 0, 1

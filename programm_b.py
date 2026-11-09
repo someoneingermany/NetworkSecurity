@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """Programm B, Empfaenger: empfaengt via ICMP, prueft, decodiert, speichert, pcap."""
 
 import base64
@@ -17,7 +16,7 @@ LINGER = 3.0
 
 
 def self_test(log):
-    # kurzer test, fuer die pruefsumme CRC32
+    # Kurzer Test, fuer die Pruefsumme CRC32
     frame = C.build_frame(C.PT_DATA, 1, 1, b"Testdaten")
     log.info("crc test normal: %s", C.parse_frame(frame)["crc_ok"])
 
@@ -25,7 +24,7 @@ def self_test(log):
     kaputt[-1] ^= 0xFF  # 1 byte kippen
     log.info("crc test kaputt: %s", C.parse_frame(bytes(kaputt))["crc_ok"])
 
-    # gleiche idee fuer den sha256 ueber die ganze datei
+    # Gleiche Idee fuer den sha256 ueber die ganze datei
     daten = b"Testdaten fuer den Selbsttest der Gesamtdatei-Pruefsumme"
     sha_soll = hashlib.sha256(daten).digest()
     log.info("sha256 test normal: %s", hashlib.sha256(daten).digest() == sha_soll)
@@ -51,29 +50,29 @@ def main():
         send(pkt, iface=IFACE, verbose=0)
 
     def assemble_and_save():
-        # sonst KeyError wenn FIN kommt bevor alle chunks da sind (zb bei nem
+        # Sonst KeyError wenn FIN kommt bevor alle chunks da sind (zb bei nem
         # gefaketen FIN - die crc32 prueft nicht, wer das paket geschickt hat)
         missing = [i for i in range(1, state["total"] + 1) if i not in state["chunks"]]
         if missing:
             log.error("Es fehlen %d Frames: %s", len(missing), missing[:20])
             return
 
-        # Aufgabe B3: Decodierung der Daten (Base64 -> urspruengliche Bytes/Text)
+        #Decodierung der Daten (Base64 -> urspruengliche Bytes/Text)
         encoded = b"".join(state["chunks"][i] for i in range(1, state["total"] + 1))
         raw = base64.b64decode(encoded)
         if hashlib.sha256(raw).digest() != state["sha"]:
             log.error("SHA-256 stimmt nicht, Uebertragung fehlerhaft")
             return
-        # Aufgabe B4: Ausgabe auf dem Bildschirm und Speicherung in einer Textdatei
+        #  Ausgabe auf dem Bildschirm und Speicherung in einer Textdatei
         with open(out_path, "wb") as f:
             f.write(raw)
         print(raw.decode("utf-8", "replace"))
         log.info("SHA-256 korrekt, gespeichert in %s", out_path)
 
     def on_packet(pkt):
-        # Aufgabe B2: Packet Capture, beide Richtungen, ungefiltert, waehrend der Laufzeit
+        # Packet Capture, beide Richtungen, ungefiltert, waehrend der Laufzeit
         pcap.write(pkt)
-        # Aufgabe B1: Empfang der von Programm A gesendeten Daten vom Netzwerkstack
+        # Empfang der von Programm A gesendeten Daten vom Netzwerkstack
         if not pkt.haslayer(ICMP) or not pkt.haslayer(Raw) or int(pkt[ICMP].type) != 8:
             return
         frame = C.parse_frame(bytes(pkt[Raw].load))
