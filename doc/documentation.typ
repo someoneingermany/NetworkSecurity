@@ -11,9 +11,9 @@
 #align(center)[
   #text(size: 17pt, weight: "bold")[Datenexfiltration über ICMP]
   #v(0.2em)
-  #text(size: 11pt)[Dokumentation zur Prüfungsleistung Network Security · TINF24CS2]
+  #text(size: 11pt)[Dokumentation zur Prüfungsleistung Network Security - TINF24CS2]
   #v(0.4em)
-  #text(size: 9.5pt, fill: luma(90))[Devi Müller · Methode: ICMP · Python 3 / Scapy]
+  #text(size: 9.5pt, fill: luma(90))[Devi Müller - Methode: ICMP - Python 3 / Scapy]
 ]
 #v(0.6em)
 #line(length: 100%, stroke: 0.5pt + luma(180))
@@ -29,48 +29,48 @@ abspeichert. Beide Programme schneiden ihren eigenen Netzwerkverkehr als pcap mi
 Als Transportweg wurde *ICMP* gewählt; beide Programme sind in Python mit der Bibliothek
 Scapy umgesetzt. Die eigentlichen Nutzdaten wandern nicht im Klartext über die Leitung,
 sondern Base64-codiert in der Nutzlast von ganz normalen Ping-Paketen. Dieses Dokument
-erklärt, warum ICMP, wie der Transport funktioniert, wie codiert und decodiert wird und
-wie sichergestellt wird, dass am Ende wirklich Zeichen für Zeichen dasselbe ankommt, was
-losgeschickt wurde.
+erklärt, warum ICMP gewählt wurde, wie der Transport funktioniert, wie codiert und
+decodiert wird und wie sichergestellt wird, dass am Ende Zeichen für Zeichen dasselbe
+ankommt, was losgeschickt wurde.
 
-Konkret ist die Vorlage rund 1,6 Kilobyte groß. Nach der Base64-Codierung wird daraus
-ein Strom von knapp 2,2 Kilobyte, der in Stücke von je 36 Zeichen geschnitten wird. Das
-ergibt 61 Datenpakete, dazu je ein Paket für den Anfang und das Ende der Übertragung.
-Das klingt nach wenig, reicht aber völlig, um alle Mechanismen an einem echten Beispiel
-zu zeigen: Transport, Codierung, Prüfsummen und die automatische Wiederholung bei
-Fehlern.
+Die Vorlage ist rund 1,6 Kilobyte groß. Nach der Base64-Codierung ergibt sich daraus ein
+Strom von knapp 2,2 Kilobyte, der in Stücke von je 36 Zeichen geteilt wird. Das ergibt
+61 Datenpakete, dazu je ein Paket für den Anfang und das Ende der Übertragung. Dieser
+Umfang genügt, um alle relevanten Mechanismen an einem konkreten Beispiel zu zeigen:
+Transport, Codierung, Prüfsummen und automatische Fehlerkorrektur.
 
-Die beiden Programme heißen schlicht `programm_a.py` (der Sender) und `programm_b.py`
-(der Empfänger); gemeinsame Bausteine wie das Rahmenformat und die Prüfsummen liegen in
+Die beiden Programme heißen `programm_a.py` (der Sender) und `programm_b.py` (der
+Empfänger); gemeinsame Bausteine wie das Rahmenformat und die Prüfsummen liegen in
 `icmp_common.py`.
 
 = Warum ICMP und nicht ARP, SNMP oder DNS
 
-Für die Wahl gab es ein paar handfeste Gründe. ICMP ist auf praktisch jedem Netz
-erlaubt und unverdächtig: Ping-Verkehr sieht niemand als Angriff, und die meisten
-Firewalls lassen Echo-Requests und -Replies durch. Genau das macht den Protokolltyp
-für eine verdeckte Übertragung attraktiv: Man versteckt sich im Rauschen, das
-sowieso ständig unterwegs ist.
+Die Wahl von ICMP beruht auf mehreren Gründen. Das Protokoll ist in praktisch jedem Netz
+zulässig, da die meisten Firewalls Echo-Requests und -Replies passieren lassen und
+Ping-Verkehr üblicherweise nicht als Angriff eingestuft wird. Dadurch eignet sich ICMP
+für eine verdeckte Übertragung, da sie sich auf Protokollebene nicht von gewöhnlichem
+Ping-Verkehr unterscheidet.
 
-Der zweite Grund ist technischer Natur: Ein ICMP-Echo-Request darf eine frei wählbare
-Nutzlast tragen, und der Empfänger antwortet per Definition mit einem Echo-Reply. Damit
-liefert das Protokoll gleich zwei Dinge, die ohnehin gebraucht werden: erstens einen
-Platz für die Daten (die Payload), zweitens einen natürlichen Rückkanal für
-Bestätigungen. Der Reply ist ohnehin vorgesehen und muss nur mit Inhalt gefüllt werden.
-Request hin, Reply zurück, das ist genau der Ablauf, den ICMP vorsieht; der Entwurf hält
-sich also an das Protokoll und zweckentfremdet nur die Nutzlast.
+Ein weiterer Grund ist technischer Natur: Ein ICMP-Echo-Request kann eine frei wählbare
+Nutzlast tragen, und der Empfänger antwortet protokollgemäß mit einem Echo-Reply. Damit
+stellt das Protokoll zwei benötigte Elemente bereit: einen Platz für die zu
+übertragenden Daten (die Payload) sowie einen Rückkanal für Bestätigungen über den
+ohnehin vorgesehenen Reply. Der Ablauf aus Request und Reply entspricht damit genau der
+von ICMP vorgesehenen Nutzung; lediglich die Nutzlast wird zweckentfremdet, während das
+Protokoll selbst korrekt eingehalten wird.
 
-Die anderen drei Methoden wurden verworfen. ARP wäre auf die Broadcast-Domain
-beschränkt und kennt keinen sauberen Rückweg für Quittungen. DNS hätte bedeutet, Daten
-in Subdomains zu pressen, mit allen Längenbegrenzungen und Zeichenbeschränkungen, die
-Hostnamen so mit sich bringen. SNMP wiederum setzt eine funktionierende Agenten-Manager-
-Infrastruktur voraus und wirkt in einem kleinen Testnetz eher aufgesetzt. ICMP war für
-das Szenario schlicht der direkteste und robusteste Weg.
+Die übrigen drei Methoden wurden aus folgenden Gründen nicht gewählt: ARP ist auf die
+Broadcast-Domain beschränkt und bietet keinen definierten Rückweg für Bestätigungen.
+DNS würde erfordern, Daten in Subdomains zu kodieren, was durch die Längen- und
+Zeichenbeschränkungen von Hostnamen zusätzlichen Aufwand verursacht. SNMP setzt eine
+funktionierende Agenten-Manager-Infrastruktur voraus, die sich in einem kleinen Testnetz
+nicht sinnvoll abbilden lässt. Für das vorliegende Szenario stellt ICMP damit den
+direktesten und robustesten Übertragungsweg dar.
 
 = Wie die Daten übers Netz gehen
 
 Programm A verschickt die Daten in vielen kleinen ICMP-Echo-Requests (Typ 8). In jede
-Nutzlast wird ein eigener kleiner Rahmen (ein „Frame") gelegt, der aus einem Kopf und
+Nutzlast wird ein eigener kleiner Rahmen (ein „Frame“) gelegt, der aus einem Kopf und
 dem eigentlichen Datenstück besteht. Programm B hört mit einem Raw-Socket auf
 eingehende Echo-Requests, erkennt an einer Kennung, welche davon aus Programm A stammen,
 und schickt für jedes korrekt empfangene Paket einen Echo-Reply (Typ 0) als Bestätigung
@@ -81,13 +81,13 @@ Jeder Request bekommt eine feste Identifier-Nummer und eine fortlaufende Sequenz
 im ICMP-Kopf, genau wie ein echter Ping sie setzt, und B antwortet darauf mit einem
 passenden Echo-Reply. Von außen betrachtet ist das also ein formal korrekter
 Ping-Austausch, nur dass in der Nutzlast nicht die üblichen Füllbytes stehen, sondern
-der codierte Rahmen. So bleibt der Verkehr protokollkonform und fällt nicht schon
-dadurch auf, dass er sich seltsam verhält.
+der codierte Rahmen. Der Verkehr bleibt dadurch protokollkonform und unterscheidet sich
+auf Protokollebene nicht von einem gewöhnlichen Ping-Austausch.
 
 Damit der Verkehr unauffällig bleibt, ist die Paketgröße bewusst an einen normalen Ping
 angelehnt. Ein Standard-Ping unter macOS oder Linux trägt 56 Byte Nutzlast; der Rahmen
-ist mit 20 Byte Kopf plus 36 Byte Daten genauso groß. Wer nur auf die Paketgrößen
-schaut, sieht also nichts Ungewöhnliches.
+ist mit 20 Byte Kopf plus 36 Byte Daten genauso groß. Anhand der Paketgröße allein lässt
+sich der Datenverkehr nicht von regulärem Ping-Verkehr unterscheiden.
 
 Der Rahmenkopf ist 20 Byte lang und immer gleich aufgebaut:
 
@@ -98,7 +98,7 @@ Der Rahmenkopf ist 20 Byte lang und immer gleich aufgebaut:
     align: (left, center, left),
     stroke: 0.4pt + luma(170),
     table.header([*Feld*], [*Größe*], [*Bedeutung*]),
-    [magic], [4 B], [Kennung „NSEC", um eigene Pakete von fremdem Ping zu trennen],
+    [magic], [4 B], [Kennung „NSEC“, um eigene Pakete von fremdem Ping zu trennen],
     [version], [1 B], [Protokollversion (aktuell 1)],
     [ptype], [1 B], [Pakettyp: INIT, DATA, FIN oder ACK],
     [seq], [4 B], [laufende Nummer des Frames],
@@ -110,9 +110,9 @@ Der Rahmenkopf ist 20 Byte lang und immer gleich aufgebaut:
   caption: [Aufbau eines Frames innerhalb der ICMP-Nutzlast.],
 )
 
-Eine Übertragung läuft in drei Phasen ab. Zuerst schickt A ein *INIT*-Paket mit den
-Metadaten (dem SHA-256-Fingerabdruck der Originaldatei und dem Dateinamen) und sagt
-damit auch, wie viele Datenpakete folgen werden. Danach kommen die *DATA*-Pakete, jedes
+Eine Übertragung läuft in drei Phasen ab. Zuerst schickt A ein *INIT*-Paket mit dem
+SHA-256-Fingerabdruck der Originaldatei und sagt damit auch, wie viele Datenpakete
+folgen werden. Danach kommen die *DATA*-Pakete, jedes
 mit einem Stück der codierten Daten und seiner eigenen laufenden Nummer. Zum Schluss
 markiert ein *FIN*-Paket das Ende, woraufhin B alles zusammensetzt und prüft. Die
 *ACK*-Pakete sind die Bestätigungen, die B über den Echo-Reply zurückschickt.
@@ -142,24 +142,24 @@ vom INIT am Anfang und vom FIN am Ende.
 
 = Codierung und Decodierung
 
-Verschlüsselt wird laut Aufgabe nichts. Gefordert ist ein Codierungsverfahren, und die
-Wahl fiel auf *Base64*. Der Grund ist praktischer Natur: Der Originaltext
-enthält Umlaute, Paragrafenzeichen und Zeilenumbrüche, also Bytes, die man nicht ohne
-Weiteres roh durch eine Paketnutzlast schieben möchte, ohne irgendwann über ein
-Sonderzeichen zu stolpern. Base64 bildet beliebige Bytes auf einen handzahmen
-Zeichenvorrat (A–Z, a–z, 0–9, `+`, `/`) ab und macht aus dem Text einen gleichförmigen
-Strom, der sich sauber in gleich große Stücke schneiden lässt. Nebenbei ist der Inhalt
-damit auch nicht mehr im Klartext lesbar: Wer den Mitschnitt öffnet, sieht erst einmal
-nur eine Buchstabensuppe.
+Verschlüsselt wird laut Aufgabenstellung nichts. Gefordert ist ein Codierungsverfahren,
+und die Wahl fiel auf *Base64*. Der Grund ist praktischer Natur: Der Originaltext
+enthält Umlaute, Paragrafenzeichen und Zeilenumbrüche, also Bytes, die sich nicht ohne
+Weiteres unverändert durch eine Paketnutzlast übertragen lassen, ohne dass es zu
+Problemen mit Sonderzeichen kommt. Base64 bildet beliebige Bytes auf einen
+eingeschränkten, unkritischen Zeichenvorrat (A–Z, a–z, 0–9, `+`, `/`) ab und erzeugt
+daraus einen gleichförmigen Strom, der sich in gleich große Stücke zerlegen lässt. Der
+Inhalt ist dadurch zugleich nicht mehr im Klartext lesbar; ein Mitschnitt zeigt zunächst
+nur eine Zeichenfolge ohne erkennbare Struktur.
 
-Ein kleines Beispiel macht das anschaulich: Aus dem Wort `§ 202c` (das wegen des
-Paragrafenzeichens schon mehrere Bytes umfasst) wird nach der Codierung die harmlose
-Zeichenfolge `wqcgMjAyYw==`. Genau solche Zeichenketten reihen sich in den
-Datenpaketen aneinander, und kein Mensch erkennt ihnen auf den ersten Blick an, dass
-dahinter Gesetzestext steckt.
+Das folgende Beispiel veranschaulicht dies: Aus dem Wort `§ 202c` (das wegen des
+Paragrafenzeichens mehrere Bytes umfasst) wird nach der Codierung die Zeichenfolge
+`wqcgMjAyYw==`. Solche Zeichenketten reihen sich in den Datenpaketen aneinander, ohne
+dass der zugrunde liegende Gesetzestext auf den ersten Blick erkennbar ist.
 
-Der Ablauf ist denkbar direkt. Programm A liest die Datei als Bytes ein, jagt sie durch
-`base64.b64encode` und zerlegt das Ergebnis in Stücke von je 36 Zeichen. Jedes Stück
+Der Ablauf gestaltet sich wie folgt: Programm A liest die Datei als Bytes ein,
+verarbeitet sie mit `base64.b64encode` und zerlegt das Ergebnis in Stücke von je 36
+Zeichen. Jedes Stück
 wandert in ein DATA-Paket. Programm B sammelt die Stücke, sortiert sie nach ihrer
 laufenden Nummer, hängt sie wieder aneinander und ruft `base64.b64decode` auf. Heraus
 kommen exakt die ursprünglichen Bytes, die dann als Text angezeigt und gespeichert
@@ -167,10 +167,10 @@ werden. Weil Base64 eine umkehrbare Eins-zu-eins-Abbildung ist, geht bei Codieru
 Decodierung grundsätzlich kein Zeichen verloren. Alle Verluste, die abgefangen werden
 müssen, passieren auf dem Transportweg, nicht bei der Codierung.
 
-Dass die Umlaute und das Paragrafenzeichen heil durchkommen, hängt übrigens auch daran,
-dass die Datei konsequent als Bytes behandelt und erst ganz am Ende, bei der Anzeige,
-wieder als UTF-8-Text interpretiert wird. So gibt es unterwegs keine Stelle, an der ein
-Zeichensatz falsch geraten werden könnte.
+Die korrekte Übertragung von Umlauten und Sonderzeichen wird dadurch sichergestellt,
+dass die Datei durchgehend als Bytes behandelt und erst bei der Anzeige am Ende wieder
+als UTF-8-Text interpretiert wird. Dadurch entsteht an keiner Stelle der Übertragung
+eine Mehrdeutigkeit bei der Zeichensatz-Interpretation.
 
 = Integrität und Fehlerkorrektur
 
@@ -180,8 +180,8 @@ und bei Fehlern wird aktiv nachkorrigiert.
 *Pro Paket* trägt jeder Frame eine CRC32-Prüfsumme über seinen Datenteil im Kopf.
 Programm B rechnet die Prüfsumme beim Empfang neu und vergleicht. Stimmt sie, gilt das
 Paket als sauber; stimmt sie nicht, war das Paket unterwegs beschädigt und wird
-verworfen. CRC32 ist kein kryptografischer Schutz, aber genau das richtige Werkzeug, um
-Bitfehler bei der Übertragung zuverlässig zu erkennen. Schon ein einziges gekipptes Bit
+verworfen. CRC32 bietet keinen kryptografischen Schutz, eignet sich jedoch zur
+zuverlässigen Erkennung von Bitfehlern bei der Übertragung. Schon ein einziges gekipptes Bit
 im Datenteil führt zu einer völlig anderen Prüfsumme. B merkt den Fehler also sofort,
 noch bevor das kaputte Stück überhaupt in den Gesamtpuffer wandert. Genau dieses
 Verhalten wurde auch gezielt getestet: Dreht man in einem Frame ein Bit um, schlägt
@@ -197,13 +197,14 @@ verloren wurde.
 Die eigentliche *Fehlerkorrektur* läuft über ein einfaches, aber wirksames Verfahren:
 Stop-and-Wait mit Bestätigungen, in der Netzwerktechnik als ARQ bekannt. A schickt ein
 Paket und wartet, bis B es bestätigt. Dabei gibt es zwei Fälle. Kam das Paket sauber an,
-schickt B ein ACK mit dem Status „OK", und A geht zum nächsten Paket über. War die
+schickt B ein ACK mit dem Status „OK“, und A geht zum nächsten Paket über. War die
 Prüfsumme falsch, schickt B ein NACK zurück, und A sendet dasselbe Paket sofort noch
 einmal. Bleibt die Bestätigung ganz aus (etwa weil ein Paket komplett verloren ging),
 läuft bei A nach zwei Sekunden eine Zeitschranke ab, und auch dann wird erneut gesendet.
 Bis zu fünf Versuche pro Paket sind vorgesehen; erst danach gilt die Übertragung als
-gescheitert. Doppelt angekommene Pakete erkennt B an ihrer laufenden Nummer und
-bestätigt sie einfach noch einmal, ohne sie ein zweites Mal zu verarbeiten.
+gescheitert. Ein Datenpaket, das trotz vorheriger Bestätigung noch einmal eintrifft
+(etwa weil das ACK selbst verloren ging), legt B einfach erneut unter derselben
+Sequenznummer ab: Das Ergebnis ändert sich dadurch nicht, und B bestätigt wie gewohnt.
 
 Zusammengenommen greifen die drei Mechanismen ineinander: CRC32 erkennt kaputte Pakete,
 das ARQ-Verfahren sorgt dafür, dass fehlende oder beschädigte Pakete automatisch
@@ -218,12 +219,11 @@ ungefiltert) sofort in die Datei schreibt. So entstehen zwei Mitschnitte, die ma
 hinterher in Wireshark Paket für Paket nachvollziehen kann: die Echo-Requests mit den
 Daten und die Echo-Replies mit den Bestätigungen.
 
-Zusätzlich schreibt jedes Programm ein ausführliches Logbuch. Auf der Konsole sieht man
-im Klartext, welches Paket gerade raus- oder reingeht, wie die Prüfsumme ausfällt und
-wie weit die Übertragung fortgeschritten ist; in der Logdatei landet zusätzlich jede
-Einzelheit inklusive Hexdump. Am Ende fasst eine kleine Statistik zusammen, wie viele
-Pakete gesendet wurden, wie oft wiederholt werden musste und ob am Schluss alles passt.
-Alle Ergebnisse (die beiden pcap-Dateien, die von B gespeicherte Textdatei und die
+Zusätzlich schreibt jedes Programm ein Logbuch, das parallel auf der Konsole und in
+einer Datei erscheint. Dort steht im Klartext, welches Paket gerade raus- oder reingeht,
+mit welcher Sequenznummer und beim wievielten Versuch, sowie ob eine ACK- oder
+NACK-Antwort kam. Programm A meldet am Ende, ob die Übertragung insgesamt erfolgreich
+war. Alle Ergebnisse (die beiden pcap-Dateien, die von B gespeicherte Textdatei und die
 Logs) legen die Programme gesammelt in einem Ordner `output/` ab.
 
 = Testaufbau
@@ -244,62 +244,57 @@ die Übertragung zeichengenau war.
 
 = Ein Durchlauf in der Praxis
 
-Im Logbuch liest sich eine Übertragung ungefähr so: A meldet zu Beginn die Eckdaten
-(Dateigröße, den SHA-256 des Originals und die Zahl der zu sendenden Pakete) und
-schickt dann der Reihe nach INIT, die 61 Datenpakete und zum Schluss FIN. Für jedes
-Paket erscheint eine Zeile mit Richtung, Pakettyp, laufender Nummer und dem Ergebnis der
-Prüfsumme, etwa so:
+Das folgende Logbeispiel zeigt den typischen Ablauf einer Übertragung: A sendet der
+Reihe nach INIT, die 61 Datenpakete und abschließend FIN. Für jedes Paket erscheint eine Zeile mit Pakettyp,
+laufender Nummer und der Versuchszahl, dazu die Antwort, die der Sniffer-Thread parallel
+mitschreibt, etwa so:
 
 #block(inset: (left: 0.5em), text(size: 9pt, font: "Menlo")[
 ```
--> DATA seq=12  len=36  crc-ok  (56 Byte Rahmen)
-<- ACK  seq=12  (OK)
+-> ptype=2 seq=12 (Versuch 1/5)
+<- ACK seq=12
 ```
 ])
 
-Auf der Gegenseite spiegelt sich das: B protokolliert jedes empfangene Paket, bestätigt
-es und meldet den Fortschritt in Prozent. Sobald FIN eintrifft, setzt B die Stücke
-zusammen, prüft den SHA-256, speichert die Datei und gibt den vollständigen Gesetzestext
-auf dem Bildschirm aus. Zum Abschluss zieht jedes Programm eine kurze Bilanz: wie viele
-Pakete gesendet bzw. empfangen wurden, wie oft wiederholt werden musste und ob die
-Prüfung am Ende erfolgreich war. Muss einmal kein Paket wiederholt werden, steht dort
-schlicht eine Null bei den Wiederholungen; läuft dagegen ein Paket verloren, sieht man
-im Log genau, welche Nummer erneut geschickt wurde und dass sie beim zweiten Anlauf
-ankam.
+Auf der Gegenseite protokolliert B jedes empfangene Paket. Sobald FIN eintrifft, setzt B
+die Stücke zusammen, prüft den SHA-256, speichert die Datei und gibt den vollständigen
+Gesetzestext auf dem Bildschirm aus. Geht einmal ein Paket verloren, sieht man im Log
+von A genau, welche Nummer mit welchem Versuch erneut geschickt wurde, und bei B taucht
+vorher eine Zeile mit CRC-Fehler und NACK auf, falls das Paket beschädigt statt verloren
+war.
 
 = Fazit
 
-In einem kleinen, ruhigen Testnetz funktioniert der Weg über ICMP sehr zuverlässig. Die
-Datei kommt vollständig und zeichengenau an, und durch das ARQ-Verfahren übersteht die
-Übertragung auch einzelne verlorene oder beschädigte Pakete, ohne dass ein Mensch
-eingreifen muss. Für den Rahmen dieser Prüfungsleistung ist die Methode damit gut
-geeignet.
+In einem kleinen, störungsarmen Testnetz arbeitet die Übertragung über ICMP zuverlässig.
+Die Datei kommt vollständig und zeichengenau an, und das ARQ-Verfahren gleicht einzelne
+verlorene oder beschädigte Pakete automatisch aus, ohne dass manuell eingegriffen werden
+muss. Für den Rahmen dieser Prüfungsleistung ist die Methode damit gut geeignet.
 
-In der Praxis hätte der Ansatz allerdings auch Grenzen. Das Stop-and-Wait-Verfahren ist
-bewusst einfach gehalten und nicht auf Geschwindigkeit optimiert. Für ein paar
-Kilobyte ist das egal, für große Datenmengen würde es zäh. Und so unauffällig
-Ping-Verkehr auf den ersten Blick ist, so auffällig wird er, wenn man genauer hinsieht:
-Ein Dauerfeuer aus Echo-Requests mit immer gleicher Größe und einer Nutzlast voller
-zufällig aussehender Zeichen ist für ein aufmerksames Überwachungssystem ein deutliches
-Warnsignal.
+In der Praxis hat der Ansatz jedoch Grenzen. Das Stop-and-Wait-Verfahren ist bewusst
+einfach gehalten und nicht auf Geschwindigkeit optimiert. Für wenige Kilobyte fällt dies
+nicht ins Gewicht, bei größeren Datenmengen würde die Übertragung jedoch deutlich länger
+dauern. Obwohl Ping-Verkehr auf den ersten Blick unauffällig wirkt, lässt er sich bei
+genauerer Analyse erkennen: Eine hohe Anzahl von Echo-Requests mit stets gleicher Größe
+und einer Nutzlast mit hoher Entropie stellt für ein Überwachungssystem ein erkennbares
+Warnsignal dar.
 
-Genau da setzt auch die Abwehr an. Erkennen lässt sich so ein Abfluss, indem man den
-ICMP-Verkehr überwacht statt ihn blind durchzulassen: auf ungewöhnlich viele oder
-regelmäßige Pings achten, die Nutzlast inspizieren und auf hohe Zufälligkeit (Entropie)
-prüfen, und solche Muster mit einem IDS wie Snort oder Suricata melden lassen.
-Verhindern kann man ihn, indem man ICMP an den Netzgrenzen einschränkt oder in der Rate
-begrenzt und per Egress-Filter kontrolliert, was das Netz überhaupt nach außen verlassen
-darf.
+An diesem Punkt setzt die Abwehr an. Ein solcher Datenabfluss lässt sich erkennen, indem
+der ICMP-Verkehr überwacht statt ungefiltert zugelassen wird: durch Beobachtung
+ungewöhnlich häufiger oder regelmäßiger Pings, Inspektion der Nutzlast auf hohe
+Zufälligkeit (Entropie) sowie Meldung entsprechender Muster über ein IDS wie
+Suricata. Verhindern lässt er sich, indem ICMP an den Netzgrenzen eingeschränkt oder in
+der Rate begrenzt und über Egress-Filter kontrolliert wird, welcher Verkehr das Netz
+verlassen darf.
 
-Was dafür nötig ist, lässt sich in drei Dinge fassen. Erstens *Sichtbarkeit*: Man
-braucht einen Sensor an der richtigen Stelle (typischerweise am Gateway oder über einen
-Mirror-Port am Switch), der den ICMP-Verkehr überhaupt mitbekommt, dazu Werkzeuge, die
-nicht nur Pakettypen zählen, sondern auch in die Nutzlast schauen und per NetFlow oder
-einem Monitoring die Mengen und Zeitabstände über längere Zeit auswerten. Zweitens
-*Regeln und Technik*: eine Firewall mit Egress-Filterung, IDS/IPS-Signaturen, die auf
-auffällige Payload-Größen und hohe Entropie ansprechen, und eine Rate-Begrenzung für
-ICMP. Und drittens (fast der wichtigste Punkt) *Menschen und Prozesse*: Die beste
-Meldung nützt nichts, wenn niemand die Alarme auswertet; es braucht also jemanden, der
-die Baseline des normalen Ping-Verkehrs kennt, Abweichungen bewertet und im Ernstfall
-reagiert. Allein mit Technik ist es also nicht getan; Erkennung und Abwehr stehen und
-fallen damit, dass der Verkehr beobachtet *und* jemand zuständig ist.
+Die hierfür erforderlichen Maßnahmen lassen sich in drei Bereiche gliedern. Erstens
+*Sichtbarkeit*: Erforderlich ist ein Sensor an der richtigen Stelle (typischerweise am
+Gateway oder über einen Mirror-Port am Switch), der den ICMP-Verkehr erfasst, sowie
+Werkzeuge, die nicht nur Pakettypen zählen, sondern auch die Nutzlast inspizieren und
+über NetFlow oder Monitoring Mengen und Zeitabstände über einen längeren Zeitraum
+auswerten. Zweitens *Regeln und Technik*: eine Firewall mit Egress-Filterung,
+IDS/IPS-Signaturen, die auf auffällige Payload-Größen und hohe Entropie ansprechen, und
+eine Rate-Begrenzung für ICMP. Drittens *Menschen und Prozesse*: Eine Meldung ist nur
+wirksam, wenn sie auch ausgewertet wird; dafür ist Personal erforderlich, das die
+Baseline des normalen Ping-Verkehrs kennt, Abweichungen bewertet und im Ernstfall
+reagiert. Technische Maßnahmen allein genügen daher nicht; Erkennung und Abwehr setzen
+sowohl die Überwachung des Verkehrs als auch eine zuständige Person voraus.

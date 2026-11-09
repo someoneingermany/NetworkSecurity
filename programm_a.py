@@ -69,7 +69,6 @@ def main():
     with open(FILE, "rb") as f:
         raw = f.read()
     sha = hashlib.sha256(raw).digest()
-    filename = os.path.basename(FILE).encode("utf-8")[:255]
 
     # Aufgabe A2: Codierung des Textinhaltes (Base64, kein Klartext auf dem Netz)
     encoded = base64.b64encode(raw)
@@ -82,7 +81,7 @@ def main():
 
     ok = False
     try:
-        ok = send_reliable(C.PT_INIT, 0, total, sha + filename)
+        ok = send_reliable(C.PT_INIT, 0, total, sha)
         for i, chunk in enumerate(chunks, start=1):
             if not ok:
                 break

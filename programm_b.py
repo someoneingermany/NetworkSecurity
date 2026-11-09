@@ -16,10 +16,30 @@ OUTDIR = "output"
 LINGER = 3.0
 
 
+def self_test(log):
+    # kurzer test, fuer die pruefsumme CRC32
+    frame = C.build_frame(C.PT_DATA, 1, 1, b"Testdaten")
+    log.info("crc test normal: %s", C.parse_frame(frame)["crc_ok"])
+
+    kaputt = bytearray(frame)
+    kaputt[-1] ^= 0xFF  # 1 byte kippen
+    log.info("crc test kaputt: %s", C.parse_frame(bytes(kaputt))["crc_ok"])
+
+    # gleiche idee fuer den sha256 ueber die ganze datei
+    daten = b"Testdaten fuer den Selbsttest der Gesamtdatei-Pruefsumme"
+    sha_soll = hashlib.sha256(daten).digest()
+    log.info("sha256 test normal: %s", hashlib.sha256(daten).digest() == sha_soll)
+
+    daten_kaputt = bytearray(daten)
+    daten_kaputt[0] ^= 0xFF
+    log.info("sha256 test kaputt: %s", hashlib.sha256(bytes(daten_kaputt)).digest() == sha_soll)
+
+
 def main():
     conf.verb = 0
     os.makedirs(OUTDIR, exist_ok=True)
     log = C.get_logger("ProgrammB", os.path.join(OUTDIR, "programm_b.log"))
+    self_test(log)
     pcap = PcapWriter(os.path.join(OUTDIR, "programm_b.pcap"), append=False, sync=True)
     out_path = os.path.join(OUTDIR, "empfangen_b.txt")
 
@@ -31,6 +51,13 @@ def main():
         send(pkt, iface=IFACE, verbose=0)
 
     def assemble_and_save():
+        # sonst KeyError wenn FIN kommt bevor alle chunks da sind (zb bei nem
+        # gefaketen FIN - die crc32 prueft nicht, wer das paket geschickt hat)
+        missing = [i for i in range(1, state["total"] + 1) if i not in state["chunks"]]
+        if missing:
+            log.error("Es fehlen %d Frames: %s", len(missing), missing[:20])
+            return
+
         # Aufgabe B3: Decodierung der Daten (Base64 -> urspruengliche Bytes/Text)
         encoded = b"".join(state["chunks"][i] for i in range(1, state["total"] + 1))
         raw = base64.b64decode(encoded)
@@ -60,7 +87,7 @@ def main():
             return
 
         if frame["ptype"] == C.PT_INIT:
-            state["total"], state["sha"] = frame["total"], frame["data"][:32]
+            state["total"], state["sha"] = frame["total"], frame["data"]
             state["chunks"].clear()
         elif frame["ptype"] == C.PT_DATA:
             state["chunks"][seq] = frame["data"]
