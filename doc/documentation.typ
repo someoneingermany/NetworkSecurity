@@ -13,7 +13,7 @@
   #v(0.2em)
   #text(size: 11pt)[Dokumentation zur Prüfungsleistung Network Security - TINF24CS2]
   #v(0.4em)
-  #text(size: 9.5pt, fill: luma(90))[Devi Müller - Methode: ICMP - Python 3 / Scapy]
+  #text(size: 9.5pt, fill: luma(90))[Devi Müller]
 ]
 #v(0.6em)
 #line(length: 100%, stroke: 0.5pt + luma(180))
@@ -39,11 +39,7 @@ Strom von knapp 2,2 Kilobyte, der in Stücke von je 36 Zeichen geteilt wird. Das
 Umfang genügt, um alle relevanten Mechanismen an einem konkreten Beispiel zu zeigen:
 Transport, Codierung, Prüfsummen und automatische Fehlerkorrektur.
 
-Die beiden Programme heißen `programm_a.py` (der Sender) und `programm_b.py` (der
-Empfänger); gemeinsame Bausteine wie das Rahmenformat und die Prüfsummen liegen in
-`icmp_common.py`.
-
-= Warum ICMP und nicht ARP, SNMP oder DNS
+= Warum ICMP
 
 Die Wahl von ICMP beruht auf mehreren Gründen. Das Protokoll ist in praktisch jedem Netz
 zulässig, da die meisten Firewalls Echo-Requests und -Replies passieren lassen und
@@ -58,14 +54,6 @@ stellt das Protokoll zwei benötigte Elemente bereit: einen Platz für die zu
 ohnehin vorgesehenen Reply. Der Ablauf aus Request und Reply entspricht damit genau der
 von ICMP vorgesehenen Nutzung; lediglich die Nutzlast wird zweckentfremdet, während das
 Protokoll selbst korrekt eingehalten wird.
-
-Die übrigen drei Methoden wurden aus folgenden Gründen nicht gewählt: ARP ist auf die
-Broadcast-Domain beschränkt und bietet keinen definierten Rückweg für Bestätigungen.
-DNS würde erfordern, Daten in Subdomains zu kodieren, was durch die Längen- und
-Zeichenbeschränkungen von Hostnamen zusätzlichen Aufwand verursacht. SNMP setzt eine
-funktionierende Agenten-Manager-Infrastruktur voraus, die sich in einem kleinen Testnetz
-nicht sinnvoll abbilden lässt. Für das vorliegende Szenario stellt ICMP damit den
-direktesten und robustesten Übertragungsweg dar.
 
 = Wie die Daten übers Netz gehen
 
@@ -85,9 +73,11 @@ der codierte Rahmen. Der Verkehr bleibt dadurch protokollkonform und unterscheid
 auf Protokollebene nicht von einem gewöhnlichen Ping-Austausch.
 
 Damit der Verkehr unauffällig bleibt, ist die Paketgröße bewusst an einen normalen Ping
-angelehnt. Ein Standard-Ping unter macOS oder Linux trägt 56 Byte Nutzlast; der Rahmen
-ist mit 20 Byte Kopf plus 36 Byte Daten genauso groß. Anhand der Paketgröße allein lässt
-sich der Datenverkehr nicht von regulärem Ping-Verkehr unterscheiden.
+angelehnt. Ein Standard-Ping unter macOS oder Linux trägt 56 Byte Nutzlast; jedes
+Programm verwendet daher ebenfalls immer genau 56 Byte ICMP-Payload. Davon entfallen
+20 Byte auf den Rahmenkopf und bis zu 36 Byte auf Daten; kürzere INIT-, FIN- und
+ACK-Frames werden mit Nullbytes aufgefüllt. Anhand der Paketgröße allein lässt sich der
+Datenverkehr dadurch nicht von regulärem Ping-Verkehr unterscheiden.
 
 Der Rahmenkopf ist 20 Byte lang und immer gleich aufgebaut:
 

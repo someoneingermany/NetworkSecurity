@@ -33,9 +33,9 @@
 - Codierung: Base64 – keine Verschlüsselung nötig, reicht laut Aufgabenstellung als
   Codierungsverfahren.
 - Jedes Paket ist ein ICMP Echo-Request (Typ 8), 56 Byte Payload – wie ein normaler Ping.
-- Eigenes 20-Byte-Rahmenformat in der Payload: Magic `NSEC`, Version, Pakettyp
-  (INIT/DATA/FIN/ACK), Sequenznummer, Gesamtzahl, Datenlänge, CRC32 – danach 36 Byte
-  codierte Daten.
+- Eigenes 20-Byte-Rahmenformat in der Payload: Magic `DHBW`, Version, Pakettyp
+  (INIT/DATA/FIN/ACK), Sequenznummer, Gesamtzahl, Datenlänge, CRC32 – danach bis zu
+  36 Byte codierte Daten und bei kürzeren Frames Nullbytes bis insgesamt 56 Byte.
 - Ablauf: erst INIT (SHA-256 der Originaldatei), dann 61 DATA-Pakete, zum Schluss FIN.
 - B antwortet auf jedes Paket mit Echo-Reply (Typ 0) – das ist zugleich die Bestätigung
   (ACK oder NACK).
