@@ -34,7 +34,7 @@ decodiert wird und wie sichergestellt wird, dass am Ende Zeichen für Zeichen da
 ankommt, was losgeschickt wurde.
 
 Die Vorlage ist rund 1,6 Kilobyte groß. Nach der Base64-Codierung ergibt sich daraus ein
-Strom von knapp 2,2 Kilobyte, der in Stücke von je 36 Zeichen geteilt wird. Das ergibt
+Strom von knapp 2,2 Kilobyte, der in Stücke von höchstens 36 Byte geteilt wird. Das ergibt
 61 Datenpakete, dazu je ein Paket für den Anfang und das Ende der Übertragung. Dieser
 Umfang genügt, um alle relevanten Mechanismen an einem konkreten Beispiel zu zeigen:
 Transport, Codierung, Prüfsummen und automatische Fehlerkorrektur.
@@ -116,7 +116,7 @@ sichtbar.
 Für ein einzelnes Datenpaket sieht der Ablauf zwischen A und B immer gleich aus:
 
 + A baut den Frame zusammen: Kopf mit laufender Nummer und Prüfsumme, dahinter das
-  36 Zeichen lange Datenstück.
+  bis zu 36 Byte große Datenstück.
 + A verpackt den Frame in einen ICMP-Echo-Request und schickt ihn an B. Parallel notiert
   A sich, dass es für diese Nummer noch auf eine Bestätigung wartet.
 + B empfängt den Request, erkennt an der Kennung das eigene Format und rechnet die
@@ -148,8 +148,8 @@ Paragrafenzeichens mehrere Bytes umfasst) wird nach der Codierung die Zeichenfol
 dass der zugrunde liegende Gesetzestext auf den ersten Blick erkennbar ist.
 
 Der Ablauf gestaltet sich wie folgt: Programm A liest die Datei als Bytes ein,
-verarbeitet sie mit `base64.b64encode` und zerlegt das Ergebnis in Stücke von je 36
-Zeichen. Jedes Stück
+verarbeitet sie mit `base64.b64encode` und zerlegt das Ergebnis in Stücke von höchstens
+36 Byte. Jedes Stück
 wandert in ein DATA-Paket. Programm B sammelt die Stücke, sortiert sie nach ihrer
 laufenden Nummer, hängt sie wieder aneinander und ruft `base64.b64decode` auf. Heraus
 kommen exakt die ursprünglichen Bytes, die dann als Text angezeigt und gespeichert

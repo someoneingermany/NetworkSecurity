@@ -35,6 +35,8 @@ HDR_LEN = struct.calcsize(_HDR_FMT)
 
 def build_frame(ptype, seq, total, data):
     data = data or b""
+    if len(data) > CHUNK_DATA_LEN:
+        raise ValueError(f"Nutzdaten sind zu gross: {len(data)} statt maximal {CHUNK_DATA_LEN} Byte")
     crc = binascii.crc32(data) & 0xFFFFFFFF
     header = struct.pack(_HDR_FMT, MAGIC, VERSION, ptype, seq, total, len(data), crc)
     frame = header + data
