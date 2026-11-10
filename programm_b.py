@@ -69,7 +69,7 @@ def self_test(log):
     log.info("crc test normal: %s", parse_frame(frame)["crc_ok"])
 
     kaputt = bytearray(frame)
-    kaputt[-1] ^= 0xFF  # 1 byte kippen
+    kaputt[HDR_LEN] ^= 0xFF  # 1 byte kippen
     log.info("crc test kaputt: %s", parse_frame(bytes(kaputt))["crc_ok"])
 
     # Gleiche Idee fuer den sha256 ueber die ganze Datei
@@ -103,19 +103,20 @@ def main():
         missing = [i for i in range(1, state["total"] + 1) if i not in state["chunks"]]
         if missing:
             log.error("Es fehlen %d Frames: %s", len(missing), missing[:20])
-            return
+            return False
 
         #Decodierung der Daten (Base64 -> urspruengliche Bytes/Text)
         encoded = b"".join(state["chunks"][i] for i in range(1, state["total"] + 1))
         raw = base64.b64decode(encoded)
         if hashlib.sha256(raw).digest() != state["sha"]:
             log.error("SHA-256 stimmt nicht, Uebertragung fehlerhaft")
-            return
+            return False
         #  Ausgabe auf dem Bildschirm und Speicherung in einer Textdatei
         with open(out_path, "wb") as f:
             f.write(raw)
         print(raw.decode("utf-8", "replace"))
         log.info("SHA-256 korrekt, gespeichert in %s", out_path)
+        return True
 
     def on_packet(pkt):
         # Packet Capture, beide Richtungen, ungefiltert, waehrend der Laufzeit
@@ -139,8 +140,8 @@ def main():
         elif frame["ptype"] == PT_DATA:
             state["chunks"][seq] = frame["data"]
         elif frame["ptype"] == PT_FIN:
-            assemble_and_save()
-            state["done"].set()
+            if assemble_and_save():
+                state["done"].set()
 
         send_ack(src, seq, ACK_OK, icmp_id)
 
